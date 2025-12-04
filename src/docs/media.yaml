@@ -1,0 +1,305 @@
+paths:
+  /media/upload:
+    post:
+      tags:
+        - Media
+      summary: Upload a media file
+      description: Upload images, videos, audio files, or documents with automatic categorization
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: "File to upload (max 50MB for videos, 10MB for others)"
+            encoding:
+              file:
+                contentType: image/*, video/*, audio/*, application/*
+      responses:
+        "200":
+          description: File uploaded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "File uploaded successfully"
+                  file:
+                    type: object
+                    properties:
+                      filename:
+                        type: string
+                        example: "image_1733320800000.jpg"
+                      originalName:
+                        type: string
+                        example: "vacation_photo.jpg"
+                      category:
+                        type: string
+                        enum: ["images", "videos", "audio", "files"]
+                        example: "images"
+                      size:
+                        type: number
+                        example: 2048576
+                        description: "File size in bytes"
+                      url:
+                        type: string
+                        example: "/api/media/files/images/image_1733320800000.jpg"
+                      uploadedBy:
+                        type: string
+                        example: "64a8f2b1c9d4e5f6a7b8c9d0"
+                      uploadedAt:
+                        type: string
+                        format: date-time
+                        example: "2025-12-04T12:00:00Z"
+        "400":
+          description: Invalid file or upload error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                no_file:
+                  summary: No file provided
+                  value:
+                    message: "No file uploaded"
+                    status: 400
+                invalid_type:
+                  summary: Invalid file type
+                  value:
+                    message: "Invalid file type. Only images, videos, audio, and documents are allowed."
+                    status: 400
+                file_too_large:
+                  summary: File too large
+                  value:
+                    message: "File too large. Maximum size is 50MB for videos, 10MB for others."
+                    status: 400
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                message: "Too many file uploads. Please try again later."
+                status: 429
+
+  /media/files/{category}/{filename}:
+    get:
+      tags:
+        - Media
+      summary: Download/serve a media file
+      description: Download or serve a media file by category and filename
+      parameters:
+        - in: path
+          name: category
+          required: true
+          schema:
+            type: string
+            enum: ["images", "videos", "audio", "files"]
+          description: File category
+          example: "images"
+        - in: path
+          name: filename
+          required: true
+          schema:
+            type: string
+          description: File name
+          example: "image_1733320800000.jpg"
+        - in: query
+          name: download
+          schema:
+            type: boolean
+            default: false
+          description: Force download instead of inline display
+          example: true
+      responses:
+        "200":
+          description: File served successfully
+          content:
+            "*/*":
+              schema:
+                type: string
+                format: binary
+          headers:
+            Content-Type:
+              description: MIME type of the file
+              schema:
+                type: string
+                example: "image/jpeg"
+            Content-Length:
+              description: Size of the file in bytes
+              schema:
+                type: integer
+                example: 2048576
+            Content-Disposition:
+              description: How the file should be displayed
+              schema:
+                type: string
+                example: "inline; filename=image_1733320800000.jpg"
+        "404":
+          description: File not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                message: "File not found"
+                status: 404
+        "500":
+          description: Server error while serving file
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    delete:
+      tags:
+        - Media
+      summary: Delete a media file
+      description: Delete a media file (only if not used in any messages)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: category
+          required: true
+          schema:
+            type: string
+            enum: ["images", "videos", "audio", "files"]
+          description: File category
+        - in: path
+          name: filename
+          required: true
+          schema:
+            type: string
+          description: File name to delete
+      responses:
+        "200":
+          description: File deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "File deleted successfully"
+        "400":
+          description: File is in use and cannot be deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                message: "Cannot delete file - it is used in messages"
+                status: 400
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Access denied - not the file owner
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                message: "Access denied. You can only delete your own files."
+                status: 403
+        "404":
+          description: File not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /media/info/{category}/{filename}:
+    get:
+      tags:
+        - Media
+      summary: Get file information
+      description: Get metadata and information about a specific file
+      parameters:
+        - in: path
+          name: category
+          required: true
+          schema:
+            type: string
+            enum: ["images", "videos", "audio", "files"]
+          description: File category
+        - in: path
+          name: filename
+          required: true
+          schema:
+            type: string
+          description: File name
+      responses:
+        "200":
+          description: File information retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  filename:
+                    type: string
+                    example: "image_1733320800000.jpg"
+                  originalName:
+                    type: string
+                    example: "vacation_photo.jpg"
+                  category:
+                    type: string
+                    example: "images"
+                  size:
+                    type: number
+                    example: 2048576
+                    description: "File size in bytes"
+                  mimeType:
+                    type: string
+                    example: "image/jpeg"
+                  url:
+                    type: string
+                    example: "/api/media/files/images/image_1733320800000.jpg"
+                  uploadedBy:
+                    type: string
+                    example: "64a8f2b1c9d4e5f6a7b8c9d0"
+                  uploadedAt:
+                    type: string
+                    format: date-time
+                  usageCount:
+                    type: number
+                    example: 3
+                    description: "Number of messages using this file"
+                  lastModified:
+                    type: string
+                    format: date-time
+        "404":
+          description: File not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error while reading file information
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"

@@ -1,0 +1,407 @@
+paths:
+  /conversations:
+    get:
+      tags:
+        - Conversations
+      summary: Get user conversations
+      description: Retrieve all conversations for the authenticated user
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: type
+          schema:
+            type: string
+            enum: ["direct", "group"]
+          description: Filter conversations by type
+          example: "direct"
+        - in: query
+          name: search
+          schema:
+            type: string
+            maxLength: 100
+          description: Search conversations by name or participant
+          example: "john"
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number for pagination
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
+          description: Number of conversations per page
+      responses:
+        "200":
+          description: Conversations retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  conversations:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: "#/components/schemas/Conversation"
+                        - type: object
+                          properties:
+                            lastMessageText:
+                              type: string
+                              description: "Last message preview"
+                            lastMessageTime:
+                              type: string
+                              format: date-time
+                            unreadCount:
+                              type: integer
+                              description: "Number of unread messages"
+                  pagination:
+                    type: object
+                    properties:
+                      page:
+                        type: integer
+                      total:
+                        type: integer
+                      pages:
+                        type: integer
+                      hasNext:
+                        type: boolean
+                      hasPrev:
+                        type: boolean
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    post:
+      tags:
+        - Conversations
+      summary: Create a new conversation
+      description: Create a new direct or group conversation
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - type
+                - participants
+              properties:
+                type:
+                  type: string
+                  enum: ["direct", "group"]
+                  description: "Type of conversation to create"
+                participants:
+                  type: array
+                  items:
+                    type: string
+                  minItems: 1
+                  description: "Array of participant user IDs"
+                groupName:
+                  type: string
+                  maxLength: 100
+                  description: "Group name (required for group conversations)"
+                groupPicture:
+                  type: string
+                  description: "Group picture URL"
+            examples:
+              direct_conversation:
+                summary: Create direct conversation
+                value:
+                  type: "direct"
+                  participants: ["64a8f2b1c9d4e5f6a7b8c9d0"]
+              group_conversation:
+                summary: Create group conversation
+                value:
+                  type: "group"
+                  participants:
+                    ["64a8f2b1c9d4e5f6a7b8c9d0", "64a8f2b1c9d4e5f6a7b8c9d1"]
+                  groupName: "Family Chat"
+                  groupPicture: "/api/media/files/images/group_pic.jpg"
+      responses:
+        "201":
+          description: Conversation created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Conversation created successfully"
+                  conversation:
+                    $ref: "#/components/schemas/Conversation"
+        "400":
+          description: Invalid conversation data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                missing_participants:
+                  summary: Missing participants
+                  value:
+                    message: "Participants are required"
+                    status: 400
+                invalid_group_name:
+                  summary: Missing group name for group conversation
+                  value:
+                    message: "Group name is required for group conversations"
+                    status: 400
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /conversations/{conversationId}:
+    get:
+      tags:
+        - Conversations
+      summary: Get conversation details
+      description: Get detailed information about a specific conversation
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: conversationId
+          required: true
+          schema:
+            type: string
+          description: Conversation ID
+          example: "64a8f2b1c9d4e5f6a7b8c9d0"
+      responses:
+        "200":
+          description: Conversation details retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  conversation:
+                    allOf:
+                      - $ref: "#/components/schemas/Conversation"
+                      - type: object
+                        properties:
+                          participantDetails:
+                            type: array
+                            items:
+                              $ref: "#/components/schemas/User"
+        "400":
+          description: Invalid conversation ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Access denied - not a participant
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Conversation not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    put:
+      tags:
+        - Conversations
+      summary: Update group information
+      description: Update group name and picture (group conversations only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: conversationId
+          required: true
+          schema:
+            type: string
+          description: Conversation ID
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                groupName:
+                  type: string
+                  maxLength: 100
+                  description: "New group name"
+                groupPicture:
+                  type: string
+                  description: "New group picture URL"
+            example:
+              groupName: "Updated Family Chat"
+              groupPicture: "/api/media/files/images/new_group_pic.jpg"
+      responses:
+        "200":
+          description: Group information updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Group information updated successfully"
+                  conversation:
+                    $ref: "#/components/schemas/Conversation"
+        "400":
+          description: Invalid request or not a group conversation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Access denied - not a participant or admin
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /conversations/{conversationId}/participants:
+    post:
+      tags:
+        - Conversations
+      summary: Add participants to group
+      description: Add new participants to a group conversation
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: conversationId
+          required: true
+          schema:
+            type: string
+          description: Conversation ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - participants
+              properties:
+                participants:
+                  type: array
+                  items:
+                    type: string
+                  minItems: 1
+                  description: "Array of user IDs to add"
+            example:
+              participants:
+                ["64a8f2b1c9d4e5f6a7b8c9d2", "64a8f2b1c9d4e5f6a7b8c9d3"]
+      responses:
+        "200":
+          description: Participants added successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Participants added successfully"
+        "400":
+          description: Invalid request or not a group conversation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Access denied - not a participant
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /conversations/{conversationId}/participants/{participantId}:
+    delete:
+      tags:
+        - Conversations
+      summary: Remove participant from group
+      description: Remove a participant from a group conversation
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: conversationId
+          required: true
+          schema:
+            type: string
+          description: Conversation ID
+        - in: path
+          name: participantId
+          required: true
+          schema:
+            type: string
+          description: Participant user ID to remove
+      responses:
+        "200":
+          description: Participant removed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Participant removed successfully"
+        "400":
+          description: Invalid request or not a group conversation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Access denied - not authorized to remove participants
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Participant not found in conversation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"

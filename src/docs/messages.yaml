@@ -1,0 +1,240 @@
+paths:
+  /messages/send:
+    post:
+      tags:
+        - Messages
+      summary: Send a message
+      description: Send a text or media message to a conversation
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - conversationId
+                - content
+              properties:
+                conversationId:
+                  type: string
+                  example: "64a8f2b1c9d4e5f6a7b8c9d0"
+                  description: "Target conversation ID"
+                content:
+                  type: string
+                  maxLength: 5000
+                  example: "Hello, how are you?"
+                  description: "Message text content"
+                messageType:
+                  type: string
+                  enum: ["text", "image", "video", "audio", "file"]
+                  default: "text"
+                  description: "Type of message being sent"
+                mediaUrl:
+                  type: string
+                  example: "/api/media/files/images/image_1733320800000.jpg"
+                  description: "Media file URL (required for non-text messages)"
+            examples:
+              text_message:
+                summary: Text message
+                value:
+                  conversationId: "64a8f2b1c9d4e5f6a7b8c9d0"
+                  content: "Hello, how are you doing today?"
+                  messageType: "text"
+              media_message:
+                summary: Media message
+                value:
+                  conversationId: "64a8f2b1c9d4e5f6a7b8c9d0"
+                  content: "Check out this photo!"
+                  messageType: "image"
+                  mediaUrl: "/api/media/files/images/photo_1733320800000.jpg"
+      responses:
+        "201":
+          description: Message sent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Message sent successfully"
+                  data:
+                    $ref: "#/components/schemas/Message"
+        "400":
+          description: Invalid message data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                missing_content:
+                  summary: Missing message content
+                  value:
+                    message: "Message content is required"
+                    status: 400
+                invalid_conversation:
+                  summary: Invalid conversation ID
+                  value:
+                    message: "Invalid conversation ID"
+                    status: 400
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                message: "Too many messages sent. Please slow down."
+                status: 429
+
+  /messages/{conversationId}:
+    get:
+      tags:
+        - Messages
+      summary: Get conversation messages
+      description: Retrieve paginated messages for a specific conversation
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: conversationId
+          required: true
+          schema:
+            type: string
+          description: Conversation ID
+          example: "64a8f2b1c9d4e5f6a7b8c9d0"
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number for pagination
+          example: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+          description: Number of messages per page
+          example: 20
+        - in: query
+          name: before
+          schema:
+            type: string
+            format: date-time
+          description: Get messages before this timestamp
+          example: "2025-12-04T12:00:00Z"
+      responses:
+        "200":
+          description: Messages retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  messages:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Message"
+                  pagination:
+                    type: object
+                    properties:
+                      page:
+                        type: integer
+                        example: 1
+                      limit:
+                        type: integer
+                        example: 20
+                      total:
+                        type: integer
+                        example: 150
+                      pages:
+                        type: integer
+                        example: 8
+                      hasNext:
+                        type: boolean
+                        example: true
+                      hasPrev:
+                        type: boolean
+                        example: false
+        "400":
+          description: Invalid conversation ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Access denied - not a participant
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                message: "Access denied. You are not a participant in this conversation."
+                status: 403
+
+  /messages/{messageId}/read:
+    put:
+      tags:
+        - Messages
+      summary: Mark message as read
+      description: Mark a specific message as read by the current user
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: messageId
+          required: true
+          schema:
+            type: string
+          description: Message ID to mark as read
+          example: "64a8f2b1c9d4e5f6a7b8c9d1"
+      responses:
+        "200":
+          description: Message marked as read successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Message marked as read"
+        "400":
+          description: Invalid message ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Message not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                message: "Message not found"
+                status: 404

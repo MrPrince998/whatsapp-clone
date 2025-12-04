@@ -113,10 +113,12 @@ class MessageController {
       );
 
       if (otherParticipants.length > 0) {
-        message.deliveredTo = otherParticipants.map((p) => ({
-          user: p._id,
-          deliveredAt: new Date(),
-        }));
+        message.deliveredTo.push(
+          ...otherParticipants.map((p) => ({
+            user: p,
+            deliveredAt: new Date(),
+          }))
+        );
         message.status = "delivered";
         await message.save();
       }
@@ -253,10 +255,12 @@ class MessageController {
       );
 
       if (otherParticipants.length > 0) {
-        message.deliveredTo = otherParticipants.map((p) => ({
-          user: p._id,
-          deliveredAt: new Date(),
-        }));
+        message.deliveredTo.push(
+          ...otherParticipants.map((p) => ({
+            user: p._id,
+            deliveredAt: new Date(),
+          }))
+        );
         message.status = "delivered";
         await message.save();
       }
@@ -345,7 +349,7 @@ class MessageController {
       const unseenMessages = messages.filter(
         (msg) =>
           msg.sender.toString() !== userId &&
-          !msg.seenBy.some((seen) => seen?.user.toString() === userId)
+          !msg.seenBy.some((seen) => seen?.user?.toString() === userId)
       );
 
       if (unseenMessages.length > 0) {
@@ -455,7 +459,7 @@ class MessageController {
       if (status === "delivered") {
         // Add to deliveredTo if not already there
         const alreadyDelivered = message.deliveredTo.some(
-          (d) => d.user.toString() === userId
+          (d) => d.user?.toString() === userId
         );
 
         if (!alreadyDelivered) {
@@ -472,7 +476,7 @@ class MessageController {
       } else if (status === "seen") {
         // Add to seenBy if not already there
         const alreadySeen = message.seenBy.some(
-          (s) => s.user.toString() === userId
+          (s) => s.user?.toString() === userId
         );
 
         if (!alreadySeen) {
@@ -483,7 +487,7 @@ class MessageController {
 
           // Also add to deliveredTo if not there
           const alreadyDelivered = message.deliveredTo.some(
-            (d) => d.user.toString() === userId
+            (d) => d.user?.toString() === userId
           );
 
           if (!alreadyDelivered) {

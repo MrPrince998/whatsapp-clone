@@ -313,7 +313,7 @@ class SocketManager {
       });
 
       if (deliveredTo.length > 0) {
-        message.deliveredTo = deliveredTo;
+        message.deliveredTo.push(...deliveredTo);
         message.status = "delivered";
         await message.save();
       }
@@ -371,7 +371,7 @@ class SocketManager {
 
       if (status === "delivered") {
         const alreadyDelivered = message.deliveredTo.some(
-          (d) => d.user.toString() === userId
+          (d) => d.user?.toString() === userId
         );
         if (!alreadyDelivered) {
           message.deliveredTo.push({
@@ -385,7 +385,7 @@ class SocketManager {
         }
       } else if (status === "seen") {
         const alreadySeen = message.seenBy.some(
-          (s) => s.user.toString() === userId
+          (s) => s.user?.toString() === userId
         );
         if (!alreadySeen) {
           message.seenBy.push({
@@ -395,7 +395,7 @@ class SocketManager {
 
           // Also mark as delivered if not already
           const alreadyDelivered = message.deliveredTo.some(
-            (d) => d.user.toString() === userId
+            (d) => d.user?.toString() === userId
           );
           if (!alreadyDelivered) {
             message.deliveredTo.push({

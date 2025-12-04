@@ -122,7 +122,7 @@ class AuthController {
       if (!user.otpExpiry || new Date() > user.otpExpiry) {
         // Clear expired OTP
         user.otp = "";
-        user.otpExpiry = undefined;
+        user.otpExpiry = undefined as any;
         await user.save();
 
         res.status(400).json({
@@ -142,8 +142,8 @@ class AuthController {
       }
 
       // OTP is valid, clear it from database
-      user.otp = undefined;
-      user.otpExpiry = undefined;
+      user.otp = undefined as any;
+      user.otpExpiry = undefined as any;
       user.isOnline = true;
       user.lastSeen = new Date();
       await user.save();

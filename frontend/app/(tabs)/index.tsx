@@ -1,98 +1,211 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import { UniversalIcon } from '@/components/ui/universal-icon';
+import { StyleSheet, Text, View, Pressable, ScrollView, FlatList } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { DropdownMenu } from '@/components/ui/dropdown-menu';
+import { SearchInput } from '@/components/ui/search-input';
+import { useState } from 'react';
+import UserChat from '@/components/chats/userChat';
+import Seperator from '@/components/seperator';
+import NewList from '@/components/chats/newList';
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const [searchChat, setSearchChat] = useState<string>("");
+  const [currentTag, setCurrentTag] = useState<string>("All");
+  const [newListModal, setNewListModal] = useState<boolean>(false);
+  const tags = [
+    {
+      id: 1,
+      name: "All",
+    },
+    {
+      id: 2,
+      name: "unread"
+    },
+    {
+      id: 3,
+      name: "Favorites"
+    },
+    {
+      id: 4,
+      name: "Groups"
+    },
+    {
+      id: 5,
+      icon: "plus",
+    }
+  ]
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+  const handleChangeTab = (tag: string) => {
+    setCurrentTag(tag);
+  }
+  return (
+    <SafeAreaProvider style={{ backgroundColor: "#f5f5f5" }}>
+      {/* top navigation */}
+      <SafeAreaView edges={["top"]}>
+        <View style={styles.chatTopNavContainer}>
+          <DropdownMenu
+            trigger={
+              <View style={styles.ellipseIconContainer}>
+                <UniversalIcon library='feather' name='more-horizontal' size={24} color="#000" />
+              </View>
+            }
+            items={[
+              {
+                label: "Select chats",
+                icon: { library: "ionicons", name: "checkmark-circle-outline" },
+                onPress: () => console.log("Select chats"),
+              },
+              {
+                label: "Read all",
+                icon: { library: "ionicons", name: "checkmark-done-outline" },
+                onPress: () => console.log("Read all"),
+              },
+            ]}
+            align="left"
+          />
+          <View style={styles.rightNavContainer}>
+            <Pressable style={styles.cameraIconContainer}>
+              <UniversalIcon library='ionicons' name='camera' size={24} color="#000" />
+            </Pressable>
+            <Pressable style={styles.plusIconContainer} onPress={() => setNewListModal(true)}>
+              <UniversalIcon library='feather' name='plus' size={20} color="#fff" />
+            </Pressable>
+          </View>
+        </View>
+
+        <ScrollView style={{
+          height: "100%",
+        }}>
+          {/* heading */}
+          <View style={styles.chatContainer}>
+            <Text style={styles.chatHeading}>Chats</Text>
+
+            <SearchInput
+              placeholder="Ask Meta AI or Search"
+              value={searchChat}
+              onChangeText={setSearchChat}
+              containerStyle={styles.searchContainer}
+            />
+          </View>
+
+          <FlatList
+            data={tags}
+            keyExtractor={(item) => item.id.toString()}
+            horizontal
+            style={styles.tagList}
+            renderItem={({ item, index }) => {
+              if (item.icon)
+                return (<Pressable onPress={() => ""} style={[styles.tagContainer, index === 0 && styles.tagContainerActive]}>
+                  <UniversalIcon library='feather' name='plus' size={20} color="#0b0b0b" />
+                </Pressable>)
+              return (< Pressable onPress={() => handleChangeTab(item.name as any)} style={[styles.tagContainer, currentTag === item.name && styles.tagContainerActive]}>
+                <Text style={[styles.tagText, currentTag === item.name && styles.tagTextActive]}>{item.name}</Text>
+              </Pressable>)
+            }
+            }
+          />
+
+          {/* chat list */}
+          <View style={styles.chatListContainer}>
+            <UserChat />
+            <Seperator style={{ marginLeft: 60 }} />
+            <UserChat />
+          </View>
+        </ScrollView>
+
+
+
+
+
+      </SafeAreaView>
+      <NewList isOpen={newListModal} onClose={() => setNewListModal(false)} />
+    </SafeAreaProvider >
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  chatTopNavContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  rightNavContainer: {
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
   },
-  stepContainer: {
-    gap: 8,
+  ellipseIconContainer: {
+    width: 30,
+    height: 30,
+    borderRadius: 20,
+    backgroundColor: "#e9e9e9",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  cameraIconContainer: {
+    width: 30,
+    height: 30,
+    borderRadius: 20,
+    backgroundColor: "#f9f9f9",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  plusIconContainer: {
+    padding: 4,
+    borderRadius: 20,
+    backgroundColor: "green",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  chatContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  chatHeading: {
+    fontSize: 32,
+    fontWeight: "bold",
     marginBottom: 8,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  searchContainer: {
+    borderColor: '#e9e9e9',
+    borderWidth: 1,
+    borderRadius: 8,
+    width: "100%",
+    padding: 8,
+    backgroundColor: "#e9e9e9",
+  },
+  tagList: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  tagContainer: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 20,
+    backgroundColor: "#f9f9f9",
+    marginRight: 8,
+    borderColor: "#d2d2d2",
+    borderWidth: 1,
+  },
+  tagContainerActive: {
+    backgroundColor: "#a5f3b2ff",
+    borderColor: "#3dbe52ff",
+    borderWidth: 1,
+  },
+  tagText: {
+    fontSize: 16,
+    fontWeight: "normal",
+    color: "#0b0b0b",
+  },
+  tagTextActive: {
+    color: "#0b0b0b",
+  },
+  chatListContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    flexDirection: "column",
+    gap: 8,
   },
 });

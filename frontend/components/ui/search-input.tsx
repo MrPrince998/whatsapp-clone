@@ -1,16 +1,25 @@
 import React from "react";
-import { View, TextInput, StyleSheet, type TextInputProps, type ViewStyle } from "react-native";
+import {
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+  type TextInputProps,
+  type ViewStyle,
+} from "react-native";
 import { UniversalIcon } from "./universal-icon";
 
 interface SearchInputProps extends TextInputProps {
   containerStyle?: ViewStyle;
   iconSize?: number;
   iconColor?: string;
+  isIcon?: boolean;
+  TextIcon?: React.ReactNode;
 }
 
 /**
  * Reusable search input component with magnifying glass icon
- * 
+ *
  * @example
  * ```tsx
  * <SearchInput
@@ -25,16 +34,21 @@ export const SearchInput: React.FC<SearchInputProps> = ({
   iconSize = 20,
   iconColor = "#999",
   style,
+  isIcon = true,
+  TextIcon,
   ...textInputProps
 }) => {
   return (
     <View style={[styles.container, containerStyle]}>
-      <UniversalIcon
-        library="ionicons"
-        name="search"
-        size={iconSize}
-        color={iconColor}
-      />
+      {isIcon && (
+        <UniversalIcon
+          library="ionicons"
+          name="search"
+          size={iconSize}
+          color={iconColor}
+        />
+      )}
+      {TextIcon && <Text>{TextIcon}</Text>}
       <TextInput
         style={[styles.input, style]}
         placeholderTextColor="#999"

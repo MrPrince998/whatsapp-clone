@@ -1,27 +1,28 @@
-import { StyleProp, ViewStyle, View } from 'react-native'
 import React from 'react'
+import { View, ViewProps } from 'react-native'
 
-const Seperator = ({
-  orientation = "horizontal",
-  style
-}: {
-  orientation?: "horizontal" | "vertical";
-  style?: StyleProp<ViewStyle>;
-}) => {
+interface SeparatorProps extends ViewProps {
+  /** Orientation of the separator */
+  orientation?: 'horizontal' | 'vertical'
+  /** Custom className for styling with NativeWind */
+  className?: string
+}
+
+const Separator = ({
+  orientation = 'horizontal',
+  className = '',
+  ...props
+}: SeparatorProps) => {
+  const defaultClasses = orientation === 'horizontal'
+    ? 'h-[1px] w-full bg-gray-200'
+    : 'w-[1px] h-full bg-gray-200'
+
   return (
     <View
-      style={
-        [
-          {
-            height: orientation === "horizontal" ? 1 : "100%",
-            width: orientation === "vertical" ? 1 : "100%",
-            backgroundColor: "#E0E0E0",
-          },
-          style
-        ]
-      }
+      className={`${defaultClasses} ${className}`}
+      {...props}
     />
   )
 }
 
-export default Seperator  
+export default Separator
